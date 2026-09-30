@@ -37,6 +37,13 @@ network access at runtime.
   from that list makes the corresponding case throw and fail.
 - **Never commit generated data or machine-specific paths.** Local-only notes
   belong in `.local/`, which is gitignored.
+- **Keep `.nojekyll`.** GitHub Pages runs Jekyll by default, and Jekyll treats
+  `{{ }}` and `{% %}` in Markdown as Liquid template syntax. This project
+  documents JS, JSX and Go template code, so a documentation example containing
+  those sequences would break the Pages build with a confusing Liquid error and
+  silently stop the site from updating. The empty `.nojekyll` file disables
+  Jekyll entirely, which also stops it from generating duplicate HTML pages out
+  of the Markdown files.
 
 ## Bilingual convention
 
