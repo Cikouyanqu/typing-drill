@@ -1,0 +1,17 @@
+# local-only material: private pointers, machine-specific trace lists, scratch
+# migration tools. Never published.
+.local/
+
+# editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# operating systems
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# logs and scratch output
+*.log

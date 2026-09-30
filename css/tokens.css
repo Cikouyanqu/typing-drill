@@ -1,0 +1,171 @@
+/* ==========================================================================
+   tokens.css — design token layer (the single source of values)
+
+   Source of these values: the user's global front-end style baseline, a
+   pixel-measured Docker Desktop flat-tool spec (measured 2026-09-24).
+   Rules: components read var(--token) only; no literal colour values anywhere
+   else.
+   Theme: JS resolves the setting and writes <html data-theme="light|dark">, so
+   there is no flash on first paint. Light is the :root default, dark overrides
+   under [data-theme="dark"].
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- brand and interaction ---- */
+  --color-primary: #1D63ED;
+  --color-on-primary: #ffffff;
+  --color-primary-deep: #174EBC;
+  --color-primary-soft: #D6E1F8;
+  --color-link: #1D63ED;
+
+  /* ---- surfaces ---- */
+  --color-canvas: #ffffff;
+  --color-canvas-soft: #F9F9FA;
+  --color-canvas-soft-2: #F3F5F7;
+  --color-app-bg: #ffffff;
+
+  /* ---- text ---- */
+  --color-ink: #000000;
+  --color-body: #677285;
+  --color-mute: #8A93A3;
+
+  /* ---- lines ---- */
+  --color-hairline: #E0E0E0;
+  --color-divider: #EBEBEB;
+  --color-hairline-strong: #C8CCD0;
+  --color-control-border: #677285;
+
+  /* ---- disabled ---- */
+  --color-disabled-bg: #E0E0E0;
+  --color-disabled-text: #989898;
+
+  /* ---- semantic ---- */
+  --color-success: #1E8E3E;
+  --color-success-soft: #E6F4EA;
+  --color-warning: #E37400;
+  --color-warning-soft: #FEF7E0;
+  --color-error: #D93025;
+  --color-error-soft: #FCE8E6;
+
+  /* ---- overlays ---- */
+  --color-selection-bg: rgba(29, 99, 237, .16);
+  --color-scrim: rgba(0, 0, 0, .4);
+  --shadow-overlay: 0 4px 16px rgba(0, 0, 0, .14);
+
+  /* ---- heatmap ramp (per-key error rate). JS only assigns a heat-N class;
+          the colour values live here so no component hardcodes them. ---- */
+  --heat-0-bg: transparent;
+  --heat-1-bg: rgba(30, 142, 62, .16);
+  --heat-2-bg: rgba(227, 116, 0, .16);
+  --heat-3-bg: rgba(217, 48, 37, .16);
+  --heat-4-bg: rgba(217, 48, 37, .34);
+  --heat-1-line: rgba(30, 142, 62, .55);
+  --heat-2-line: rgba(227, 116, 0, .55);
+  --heat-3-line: rgba(217, 48, 37, .55);
+  --heat-4-line: rgba(217, 48, 37, .9);
+
+  /* ---- fonts ---- */
+  --font-primary: Roboto, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* ---- type scale (size / line-height / letter-spacing / weight) ---- */
+  --fs-caption: 12px;      --lh-caption: 16px;      --ls-caption: .3px;   --fw-caption: 500;
+  --fs-body-sm: 13px;      --lh-body-sm: 20px;      --ls-body-sm: 0;      --fw-body-sm: 400;
+  --fs-body: 14px;         --lh-body: 20px;         --ls-body: 0;         --fw-body: 400;
+  --fs-body-strong: 14px;  --lh-body-strong: 20px;  --ls-body-strong: 0;  --fw-body-strong: 500;
+  --fs-button: 14px;       --lh-button: 20px;       --ls-button: 0;       --fw-button: 500;
+  --fs-code: 13px;         --lh-code: 20px;         --ls-code: 0;         --fw-code: 400;
+  --fs-title-sm: 16px;     --lh-title-sm: 24px;     --ls-title-sm: 0;     --fw-title-sm: 500;
+  --fs-title-md: 18px;     --lh-title-md: 26px;     --ls-title-md: -.2px; --fw-title-md: 500;
+  --fs-title-lg: 20px;     --lh-title-lg: 28px;     --ls-title-lg: -.2px; --fw-title-lg: 500;
+  --fs-display: 24px;      --lh-display: 32px;      --ls-display: -.3px;  --fw-display: 500;
+
+  /* ---- spacing ---- */
+  --spacing-xxs: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* ---- control geometry ---- */
+  --control-h-sm: 32px;
+  --control-h-md: 36px;
+  --row-h: 36px;
+
+  /* ---- radii (capped at 8px; circles use full) ---- */
+  --radius-none: 0;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+
+  /* ---- motion ---- */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --ease: cubic-bezier(.2, 0, .2, 1);
+
+  /* ---- practice area. The typing text deliberately exceeds the 24px cap of
+          the type scale because it must stay readable at a distance; this is
+          a functional need, and the size is adjustable in settings. ---- */
+  --typing-size: 28px;
+  --typing-line-height: 1.75;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* brand and interaction */
+  --color-primary: #1D63ED;
+  --color-on-primary: #ffffff;
+  --color-primary-deep: #3B7AF0;
+  --color-primary-soft: rgba(29, 99, 237, .18);
+  --color-link: #7AA7FF;
+
+  /* surfaces */
+  --color-canvas: #252A30;
+  --color-canvas-soft: #1B1E22;
+  --color-canvas-soft-2: #14161A;
+  --color-app-bg: #1B1E22;
+
+  /* text */
+  --color-ink: #E8EAED;
+  --color-body: #BDC1C6;
+  --color-mute: #9AA0A6;
+
+  /* lines */
+  --color-hairline: #3C4043;
+  --color-divider: #2E333A;
+  --color-hairline-strong: #5F6368;
+  --color-control-border: #9AA0A6;
+
+  /* disabled */
+  --color-disabled-bg: #33383F;
+  --color-disabled-text: #6B7178;
+
+  /* semantic */
+  --color-success: #5BB974;
+  --color-success-soft: rgba(91, 185, 116, .16);
+  --color-warning: #FDD663;
+  --color-warning-soft: rgba(253, 214, 99, .14);
+  --color-error: #F28B82;
+  --color-error-soft: rgba(242, 139, 130, .16);
+
+  /* overlays */
+  --color-selection-bg: rgba(29, 99, 237, .35);
+  --color-scrim: rgba(0, 0, 0, .6);
+  --shadow-overlay: 0 4px 20px rgba(0, 0, 0, .5);
+
+  /* heatmap ramp: on dark surfaces the alpha has to rise to stay visible */
+  --heat-1-bg: rgba(91, 185, 116, .22);
+  --heat-2-bg: rgba(253, 214, 99, .22);
+  --heat-3-bg: rgba(242, 139, 130, .24);
+  --heat-4-bg: rgba(242, 139, 130, .46);
+  --heat-1-line: rgba(91, 185, 116, .6);
+  --heat-2-line: rgba(253, 214, 99, .6);
+  --heat-3-line: rgba(242, 139, 130, .6);
+  --heat-4-line: rgba(242, 139, 130, .95);
+}

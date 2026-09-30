@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Both values are replaced at runtime by TD.I18n.applyDocument(). -->
+<title>Typing Drill · Practice Programming Symbols</title>
+<meta name="description" content="A typing trainer for programming symbols: zero-dependency static pages, works offline, with per-key error rates and finger guidance.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='6'%20fill='%231D63ED'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20fill='white'%20text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/app.css">
+
+<!-- Pre-paint theme and language. This runs before first paint so the page
+     does not flash light before turning dark, and so the document language is
+     right from the start. It duplicates a little of js/ui.js and js/i18n.js on
+     purpose: those modules only take effect once every script has loaded,
+     which is too late for this. -->
+<script>
+(function () {
+  function prefersDark() {
+    try {
+      return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    } catch (e) { return false; }
+  }
+  function prefersChinese() {
+    try {
+      var raw = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+      return /^zh/i.test(String(raw));
+    } catch (e) { return false; }
+  }
+  var theme = 'auto';
+  var lang = 'auto';
+  try {
+    var raw = window.localStorage && window.localStorage.getItem('typing-drill/v1');
+    if (raw) {
+      var s = JSON.parse(raw).settings || {};
+      theme = s.theme || 'auto';
+      lang = s.lang || 'auto';
+    }
+  } catch (e) {
+    /* Storage disabled or the save is unparseable: fall back to system
+       preferences rather than blocking startup. */
+  }
+  var root = document.documentElement;
+  root.setAttribute('data-theme',
+    (theme === 'light' || theme === 'dark') ? theme : (prefersDark() ? 'dark' : 'light'));
+  root.setAttribute('lang',
+    (lang === 'zh-CN' || lang === 'en') ? lang : (prefersChinese() ? 'zh-CN' : 'en'));
+})();
+</script>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar" data-collapsed="false" aria-label="Main navigation"></aside>
+
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div id="notices"></div>
+    <main class="content" id="content">
+      <div class="content-inner" id="view"></div>
+    </main>
+  </div>
+</div>
+
+<!-- All classic scripts, never type="module": under file:// a browser refuses
+     to load ES modules (CORS), which would leave a blank page when index.html is
+     opened by double-click. The order below IS the dependency order.
+
+     i18n.js must come before any module that reads translations at load time,
+     and the two locale dictionaries must come before the first render. -->
+<script src="js/util.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/locales/zh-CN.js"></script>
+<script src="js/locales/en.js"></script>
+<script src="js/keymap.js"></script>
+<script src="js/content.symbols.js"></script>
+<script src="js/content.snippets.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/store.js"></script>
+<script src="js/adaptive.js"></script>
+<script src="js/keyboard.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/views.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>

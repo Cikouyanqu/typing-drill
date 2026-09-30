@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assertions · Typing Drill</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='6'%20fill='%231D63ED'/%3E%3Ctext%20x='16'%20y='22'%20font-family='monospace'%20font-size='15'%20fill='white'%20text-anchor='middle'%3E%25%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/app.css">
+<style>
+  .case-row { display: flex; align-items: flex-start; gap: var(--spacing-xs); padding: var(--spacing-xs) var(--spacing-sm); border-bottom: 1px solid var(--color-hairline); }
+  .case-row:last-child { border-bottom: 0; }
+  .case-mark { flex: 0 0 auto; width: 16px; font-family: var(--font-mono); }
+  .case-mark.pass { color: var(--color-success); }
+  .case-mark.fail { color: var(--color-error); }
+  .case-mark.skip { color: var(--color-warning); }
+  .case-name { flex: 1 1 auto; min-width: 0; }
+  .case-detail { margin: 4px 0 0 0; padding: 0; list-style: none; }
+  .case-detail li { font-family: var(--font-mono); font-size: 12px; line-height: 18px; color: var(--color-error); }
+  .case-detail li.skip { color: var(--color-warning); }
+  .summary-bar { display: flex; flex-wrap: wrap; gap: var(--spacing-lg); align-items: baseline; }
+</style>
+</head>
+<body>
+
+<main class="content">
+  <div class="content-inner stack-lg">
+
+    <div class="card">
+      <div class="card-head">
+        <span class="t-title-md">Assertions</span>
+        <span class="spacer"></span>
+        <a href="../index.html" style="color:var(--color-link)" class="t-body-sm">← back to the drill</a>
+      </div>
+      <div class="t-body-sm dim">
+        This page self-checks the logic layer and runs the same
+        <code class="mono">tests/cases.js</code> as
+        <code class="mono">node tests/validate.js</code>; the two must agree.
+        Coverage: key map completeness, snippet character typeability, engine
+        mistake classification, statistics definitions, storage degradation and
+        import deduplication, adaptive scoring monotonicity, and the translation
+        layer.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="summary-bar">
+        <div>
+          <span class="hud-label">Result</span>
+          <div class="result-metric-value" id="s-result">running…</div>
+        </div>
+        <div>
+          <span class="hud-label">Cases</span>
+          <div class="result-metric-value" id="s-cases">—</div>
+        </div>
+        <div>
+          <span class="hud-label">Assertions</span>
+          <div class="result-metric-value" id="s-checks">—</div>
+        </div>
+        <div>
+          <span class="hud-label">Elapsed</span>
+          <div class="result-metric-value" id="s-time">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="content-stats" hidden>
+      <div class="card-head"><span class="t-title-sm">Content overview</span></div>
+      <div id="content-stats-body"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="t-title-sm">Case detail</span>
+        <span class="spacer"></span>
+        <span class="t-body-sm mute">✗ failed　~ skipped (environment)　✓ passed</span>
+      </div>
+      <div class="list" id="cases"></div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Same dependency order as index.html. The test page does not need the pure
+     interface modules (ui/views/main), but it does need keyboard.js: one case
+     checks that fast consecutive presses leave no stale flash highlight, and
+     that requires a real DOM. -->
+<script src="../js/util.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/locales/zh-CN.js"></script>
+<script src="../js/locales/en.js"></script>
+<script src="../js/keymap.js"></script>
+<script src="../js/content.symbols.js"></script>
+<script src="../js/content.snippets.js"></script>
+<script src="../js/engine.js"></script>
+<script src="../js/stats.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/adaptive.js"></script>
+<script src="../js/keyboard.js"></script>
+<script src="../tests/cases.js"></script>
+
+<script>
+(function () {
+  var TD = window.TD;
+  var util = TD.util;
+  var el = util.el;
+
+  /* Follow the system theme, like the main application. */
+  try {
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  } catch (e) { /* keep the default light theme */ }
+
+  /* Initialise the translation layer so the assertions exercise a real
+     language rather than the pre-init fallback. */
+  TD.I18n.init({ setting: 'auto' });
+
+  function makeAssertions() {
+    var checks = 0, failures = [], skips = [];
+    return {
+      ok: function (c, m) { checks++; if (!c) failures.push(m || 'expected a truthy value, got a falsy one'); },
+      eq: function (a, b, m) {
+        checks++;
+        if (a !== b) failures.push((m || 'equality assertion') + ' → expected ' + JSON.stringify(b) + ', got ' + JSON.stringify(a));
+      },
+      notEq: function (a, b, m) { checks++; if (a === b) failures.push((m || 'inequality assertion') + ' → both sides are ' + JSON.stringify(a)); },
+      near: function (a, b, tol, m) {
+        checks++;
+        if (!(Math.abs(a - b) <= tol)) failures.push((m || 'approximate assertion') + ' → expected ' + b + '±' + tol + ', got ' + a);
+      },
+      skip: function (m) { checks++; skips.push(m); },
+      tally: function () { return { checks: checks, failures: failures, skips: skips }; }
+    };
+  }
+
+  function run() {
+    var host = document.getElementById('cases');
+    var t0 = performance.now();
+    var pass = 0, failed = 0, skipped = 0, totalChecks = 0;
+    var cases = TD.TEST_CASES || [];
+
+    cases.forEach(function (c, index) {
+      var t = makeAssertions();
+      var thrown = null;
+      try { c.fn(t, TD); }
+      catch (e) { thrown = (e && e.message) ? e.message : String(e); }
+
+      var tally = t.tally();
+      totalChecks += tally.checks;
+
+      var mark, cls;
+      if (thrown || tally.failures.length) { failed++; mark = '✗'; cls = 'fail'; }
+      else if (tally.skips.length) { skipped++; mark = '~'; cls = 'skip'; }
+      else { pass++; mark = '✓'; cls = 'pass'; }
+
+      var row = el('div', { class: 'case-row' }, [
+        el('span', { class: 'case-mark ' + cls, text: mark }),
+        el('div', { class: 'case-name' }, [
+          el('div', { class: 't-body', text: (index + 1) + '. ' + c.name }),
+          el('div', { class: 't-body-sm mute', text: tally.checks + ' assertions' })
+        ])
+      ]);
+
+      var details = [];
+      if (thrown) details.push('threw: ' + thrown);
+      tally.failures.forEach(function (f) { details.push(f); });
+      if (details.length) {
+        var ul = el('ul', { class: 'case-detail' });
+        details.forEach(function (d) { ul.appendChild(el('li', { text: d })); });
+        row.lastChild.appendChild(ul);
+      }
+      if (tally.skips.length) {
+        var ul2 = el('ul', { class: 'case-detail' });
+        tally.skips.forEach(function (s) { ul2.appendChild(el('li', { class: 'skip', text: 'skipped: ' + s })); });
+        row.lastChild.appendChild(ul2);
+      }
+
+      host.appendChild(row);
+    });
+
+    var ms = performance.now() - t0;
+    var resultEl = document.getElementById('s-result');
+    resultEl.textContent = failed === 0
+      ? (skipped ? 'passed (with skips)' : 'all passed')
+      : failed + ' case(s) failed';
+    resultEl.style.color = failed === 0 ? 'var(--color-success)' : 'var(--color-error)';
+    document.getElementById('s-cases').textContent =
+      pass + ' / ' + (pass + failed) + (skipped ? ' (+' + skipped + ' skipped)' : '');
+    document.getElementById('s-checks').textContent = String(totalChecks);
+    document.getElementById('s-time').textContent = ms.toFixed(0) + ' ms';
+
+    /* Report content size here too, so a shrinking hand-written library cannot
+       go unnoticed. */
+    var body = document.getElementById('content-stats-body');
+    var totalLines = 0;
+    TD.Snippets.PACKS.forEach(function (p) {
+      totalLines += p.lines.length;
+      body.appendChild(el('div', { class: 'list-row' }, [
+        el('span', { class: 't-body', style: { width: '90px' }, text: p.label }),
+        el('span', { class: 'badge badge-neutral', text: p.lines.length + ' lines' }),
+        el('span', { class: 't-body-sm dim', text: 'symbol density ' + (p.avgRatio * 100).toFixed(1) + '%' }),
+        el('span', { class: 'spacer' }),
+        el('span', { class: 't-body-sm mute mono', text: p.symbolChars.join(' ') })
+      ]));
+    });
+    body.appendChild(el('div', { class: 'list-row' }, [
+      el('span', { class: 't-body', style: { width: '90px' }, text: 'Total' }),
+      el('span', { class: 'badge badge-primary', text: totalLines + ' lines' }),
+      el('span', { class: 't-body-sm dim', text: TD.SymbolDrills.GROUPS.length + ' symbol groups' }),
+      el('span', { class: 'spacer' })
+    ]));
+    body.appendChild(el('div', { class: 'list-row' }, [
+      el('span', { class: 't-body', style: { width: '90px' }, text: 'Key map' }),
+      el('span', { class: 'badge badge-neutral', text: Object.keys(TD.Keymap.BY_CODE).length + ' physical keys' }),
+      el('span', { class: 't-body-sm dim', text: Object.keys(TD.Keymap.BY_CHAR).length + ' typeable characters (both layers)' }),
+      el('span', { class: 'spacer' })
+    ]));
+    document.getElementById('content-stats').hidden = false;
+  }
+
+  /* Let the browser paint the skeleton first, then run the suite, so a long
+     synchronous task cannot make the page look frozen. */
+  requestAnimationFrame(function () { setTimeout(run, 0); });
+})();
+</script>
+
+</body>
+</html>

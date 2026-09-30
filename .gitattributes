@@ -1,0 +1,10 @@
+# Shell scripts must keep LF endings, or the shebang breaks on macOS and Linux
+# when Git for Windows' autocrlf conversion is in play.
+*.sh text eol=lf
+
+# Windows launcher: CRLF is conventional, and cmd.exe accepts either.
+*.cmd text eol=crlf
+
+# Binary assets
+*.png binary
+*.jpg binary
