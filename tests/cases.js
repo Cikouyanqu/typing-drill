@@ -1119,6 +1119,67 @@ window.TD = window.TD || {};
     t.ok(checked > 150, 'the family list should cover the dynamic call sites, checked ' + checked);
   });
 
+  /* ======================================================== practice view */
+
+  test('practice view: changing mode immediately loads a drill of the new mode', function (t, TD) {
+    if (typeof document === 'undefined' || !document.createElement || !TD.Views || !TD.UI) {
+      t.skip('needs a DOM and the views module; this case runs in the browser test page');
+      return;
+    }
+    var host = document.createElement('div');
+    document.body.appendChild(host);
+    var P = TD.Views.Practice;
+
+    try {
+      /* Deliberately no probe()/load(): _resetForTest leaves the backend in
+         memory mode, so this case cannot write into the real save. */
+      TD.Store._resetForTest();
+      TD.Store.setSetting('optionsExpanded', true);
+      TD.Store.addCustom('case set', 'const a = { b: [1, 2] };\nif (a) { b(); }');
+
+      /* init() swaps the view layer's context for the rest of the page; this
+         case is placed last in the file so nothing else depends on it. */
+      TD.Views.init({ store: TD.Store, nav: function () {}, setLang: function () {}, container: host });
+
+      TD.Store.setSetting('mode', 'symbols');
+      P.drill = null;
+      P.mount(host);
+      t.eq(P.engine.meta.mode, 'symbols', 'the initial drill should match the mode');
+      t.ok(P.engine.text.length > 0, 'the initial drill should have text');
+
+      /* Drive every switch through the same entry point the buttons use.
+         Keeping the previous drill here is the bug this case exists for: the
+         toolbar changed, the text did not, so the mode buttons looked dead. */
+      ['code', 'adaptive', 'custom', 'symbols'].forEach(function (mode) {
+        TD.Store.setSetting('mode', mode);
+        P.applyOptions(host);
+        t.eq(P.engine.meta.mode, mode,
+          'switching to ' + mode + ' must load a ' + mode + ' drill at once, not keep the previous one');
+        t.ok(P.engine.text.length > 0, 'the ' + mode + ' drill must have text');
+        t.eq(P.engine.pos, 0, 'a freshly loaded drill starts at the beginning');
+      });
+
+      /* Changing the content filters must also take effect at once. */
+      TD.Store.setSetting('mode', 'symbols');
+      TD.Store.setSetting('groupIds', ['paren-basic']);
+      P.applyOptions(host);
+      var onlyParen = P.engine.text;
+      t.ok(/[()[\]{}]/.test(onlyParen), 'the drill should contain bracket characters');
+      t.ok(!/[<>]/.test(onlyParen),
+        'restricting the groups should drop characters from the excluded groups, got: ' + onlyParen);
+
+      /* A configuration-only change must NOT throw the current drill away. */
+      var before = P.engine.text;
+      TD.Store.setSetting('optionsExpanded', false);
+      P.mount(host);
+      t.eq(P.engine.text, before, 'collapsing the filters must keep the current drill');
+    } finally {
+      P.stopTimer();
+      if (host.parentNode) host.parentNode.removeChild(host);
+      TD.Store._resetForTest();
+    }
+  });
+
   /* =============================================================== summary */
 
   TD.TEST_CASES = CASES;

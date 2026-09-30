@@ -463,6 +463,7 @@ window.TD = window.TD || {};
     'practice.charsInGroup': '字符：{chars}',
     'practice.packStats': '共 {n} 行，平均符号密度 {ratio}%',
     'practice.customLines': '{name}（{n} 行）',
-    'library.defaultName': '自定义 {n}'
+    'library.defaultName': '自定义 {n}',
+    'drill.customHint': '到「内容库」粘贴代码或导入一个文件，然后在列表里点「用它练」。'
   });
 })(window.TD);

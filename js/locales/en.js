@@ -464,6 +464,7 @@ window.TD = window.TD || {};
     'practice.charsInGroup': 'Characters: {chars}',
     'practice.packStats': '{n} lines, {ratio}% average symbol density',
     'practice.customLines': '{name} ({n} lines)',
-    'library.defaultName': 'Custom {n}'
+    'library.defaultName': 'Custom {n}',
+    'drill.customHint': 'Paste code or import a file in the Library, then choose "Practise this" from the list.'
   });
 })(window.TD);

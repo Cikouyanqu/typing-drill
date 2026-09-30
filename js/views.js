@@ -161,7 +161,7 @@ window.TD = window.TD || {};
       bar.appendChild(el('div', { class: 'row row-wrap' }, [
         UI.seg(modeItems, app.store.settings.mode, function (v) {
           app.store.setSetting('mode', v);
-          self.mount(container);
+          self.applyOptions(container);
         }),
         el('span', { class: 'spacer' }),
         el('label', { class: 'check', title: tr('practice.symbolOnlyTitle') }, [
@@ -218,7 +218,7 @@ window.TD = window.TD || {};
           app.store.settings.lines,
           function (v) {
             app.store.setSetting('lines', parseInt(v, 10));
-            self.mount(container);
+            self.applyOptions(container);
           }
         ));
       }
@@ -305,6 +305,18 @@ window.TD = window.TD || {};
       else this.focusInput();
     },
 
+    /* Re-mount after an option change that affects CONTENT, and immediately
+       generate a drill of the new shape. Without the second step the toolbar
+       and summary update but the text on screen stays whatever was loaded
+       last, which reads as the switch having done nothing — the mode buttons
+       looked broken because of exactly this.
+       Configuration-only changes (collapsing the filters, for instance) must
+       keep using mount() so the current drill is not thrown away. */
+    applyOptions: function (container) {
+      this.mount(container);
+      this.startDrill(this.build());
+    },
+
     /* One-line summary shown while the filters are collapsed, so the current
        scope is visible without expanding. */
     optionsSummary: function () {
@@ -381,7 +393,7 @@ window.TD = window.TD || {};
             if (at === -1) next.push(id); else next.splice(at, 1);
             if (!next.length) next = allIds.slice();
             app.store.setSetting('groupIds', next.length === allIds.length ? null : next);
-            self.mount(container);
+            self.applyOptions(container);
           }
         ));
       } else if (s.mode === 'code') {
@@ -404,7 +416,7 @@ window.TD = window.TD || {};
             if (at === -1) next.push(id); else next.splice(at, 1);
             if (!next.length) next = allPacks.slice();
             app.store.setSetting('packIds', next.length === allPacks.length ? null : next);
-            self.mount(container);
+            self.applyOptions(container);
           }
         ));
         row.appendChild(UI.chips(
@@ -412,7 +424,7 @@ window.TD = window.TD || {};
           function (v) { return s.density === v; },
           function (v) {
             app.store.setSetting('density', s.density === 'high' ? 'any' : 'high');
-            self.mount(container);
+            self.applyOptions(container);
           }
         ));
       } else if (s.mode === 'adaptive') {
@@ -441,7 +453,7 @@ window.TD = window.TD || {};
             s.customId || app.store.custom[0].id,
             function (v) {
               app.store.setSetting('customId', v);
-              self.mount(container);
+              self.applyOptions(container);
             }
           ));
         }
@@ -454,7 +466,7 @@ window.TD = window.TD || {};
         app.store.settings.lines,
         function (v) {
           app.store.setSetting('lines', parseInt(v, 10));
-          self.mount(container);
+          self.applyOptions(container);
         }
       ));
       if (s.mode === 'symbols') {
@@ -464,7 +476,7 @@ window.TD = window.TD || {};
           app.store.settings.tokensPerLine,
           function (v) {
             app.store.setSetting('tokensPerLine', parseInt(v, 10));
-            self.mount(container);
+            self.applyOptions(container);
           }
         ));
       }
@@ -479,6 +491,17 @@ window.TD = window.TD || {};
 
       this.spans = new Array(eng.items.length);
       this.lineEls = [];
+
+      /* An empty drill — the custom library has nothing in it — would leave a
+         blank stage that looks like a rendering failure. Say what to do. */
+      if (!eng.items.length) {
+        var isEmptyDrill = !!(this.drill && this.drill.empty);
+        refs.text.appendChild(el('div', { class: 'empty' }, [
+          el('div', { class: 't-title-sm', text: isEmptyDrill && this.drill.title ? this.drill.title : tr('practice.allDone') }),
+          el('div', { class: 't-body-sm', text: isEmptyDrill ? tr('drill.customHint') : '' })
+        ]));
+        return;
+      }
 
       var idx = 0;
       eng.lines.forEach(function (line, li) {

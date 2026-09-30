@@ -32,7 +32,10 @@ var APP_FILES = [
   'stats.js',
   'store.js',
   'adaptive.js',
-  'keyboard.js'
+  'keyboard.js',
+  'charts.js',
+  'ui.js',
+  'views.js'
 ];
 
 var loaded = [];
