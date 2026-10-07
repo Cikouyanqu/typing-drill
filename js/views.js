@@ -1474,6 +1474,16 @@ window.TD = window.TD || {};
     container.appendChild(root);
   }
 
+  /* ========================================================= keyboard test */
+
+  /* The tester owns window-level key listeners, so the handle it returns has
+     to be kept and destroyed when the view is left — see teardown below. */
+  var keyTest = { handle: null };
+
+  function mountKeyTest(container) {
+    keyTest.handle = TD.Tester.mount(container, { store: app.store });
+  }
+
   /* -------------------------------------------------------- view registry */
 
   /* Views expose a label *key*, not a label: main.js resolves it at render
@@ -1483,6 +1493,7 @@ window.TD = window.TD || {};
     adaptive: { labelKey: 'nav.adaptive', icon: 'adaptive', render: mountAdaptive },
     library: { labelKey: 'nav.library', icon: 'library', render: mountLibrary },
     stats: { labelKey: 'nav.stats', icon: 'stats', render: mountStats },
+    keytest: { labelKey: 'nav.keytest', icon: 'pulse', render: mountKeyTest },
     settings: { labelKey: 'nav.settings', icon: 'settings', render: mountSettings }
   };
 
@@ -1497,9 +1508,16 @@ window.TD = window.TD || {};
       v.render(container);
     },
     /* Stop the clock when leaving the practice view so it does not run in the
-       background; engine state is kept, so returning resumes where you were. */
+       background; engine state is kept, so returning resumes where you were.
+       The keyboard tester listens on window for every key, so leaving that view
+       MUST detach it — otherwise arrow keys pressed on another view would keep
+       feeding its counters. */
     teardown: function (name) {
       if (name === 'practice') Practice.stopTimer();
+      if (name === 'keytest' && keyTest.handle) {
+        keyTest.handle.destroy();
+        keyTest.handle = null;
+      }
     },
     Practice: Practice
   };

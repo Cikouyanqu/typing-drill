@@ -39,7 +39,10 @@ window.TD = window.TD || {};
     packIds: null,
     customId: null,
     sidebarCollapsed: false,
-    optionsExpanded: false
+    optionsExpanded: false,
+    /* keyboard tester */
+    testerLayout: 'full',     /* full | tkl | compact */
+    testerSound: false
   };
 
   function deepDefaults(target, defaults) {

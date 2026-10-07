@@ -35,6 +35,18 @@ network access at runtime.
 - **Keep `tests/test.html`'s script list in sync with `index.html`.** It loads
   the logic modules plus `keyboard.js` (one case needs a DOM). A module missing
   from that list makes the corresponding case throw and fail.
+- **The keyboard tester (`js/tester.js`) attaches listeners to `window`**, so
+  anything that re-renders a view must tear the previous one down first. A
+  language switch that re-rendered without `TD.Views.teardown` left a second
+  listener set alive: every keypress was counted twice and ordinary typing was
+  reported as chatter. `mount()` also destroys any previous mount defensively,
+  and a case covers it — do not remove either.
+- **The tester's block widths are fixed pixels on purpose.** Intrinsic sizing
+  fights back: grid tracks take a max-content contribution from their items and
+  `.tk-board` carries `min-width: max-content`, so an unbreakable label like
+  `PGUP` inflated the navigation block from 132px to 459px and the whole board
+  overflowed. `NAV_KEYS` / `NUMPAD_KEYS` positions are in key units and are
+  scaled by 4 when converted to grid columns.
 - **Never commit generated data or machine-specific paths.** Local-only notes
   belong in `.local/`, which is gitignored.
 - **Keep `.nojekyll`.** GitHub Pages runs Jekyll by default, and Jekyll treats

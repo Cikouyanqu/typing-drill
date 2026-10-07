@@ -661,6 +661,7 @@ body {
 .hud-unit { font-size: var(--fs-body-sm); color: var(--color-mute); margin-left: 2px; }
 .hud-cell[data-tone="error"] .hud-value { color: var(--color-error); }
 .hud-cell[data-tone="warn"] .hud-value { color: var(--color-warning); }
+.hud-cell[data-tone="ok"] .hud-value { color: var(--color-success); }
 
 /* practice stage */
 .stage {
@@ -823,9 +824,12 @@ body {
   min-width: 660px;
 }
 
-.kb-key {
+/* Key appearance is shared between the drill keyboard (.kb-key) and the
+   keyboard tester (.tk-key) so both look native; only the grid placement
+   differs, and that stays specific to each grid below. */
+.kb-key,
+.tk-key {
   position: relative;
-  grid-column: span 4;                 /* 1u = 4 columns */
   min-height: 36px;
   display: flex;
   flex-direction: column;
@@ -843,21 +847,26 @@ body {
               color var(--motion-fast) var(--ease);
 }
 
-.kb-key .k-shift {
+.kb-key { grid-column: span 4; }        /* 1u = 4 columns in the drill grid */
+
+.kb-key .k-shift,
+.tk-key .k-shift {
   font-family: var(--font-mono);
   font-size: 10px;
   line-height: 12px;
   color: var(--color-mute);
 }
 
-.kb-key .k-base {
+.kb-key .k-base,
+.tk-key .k-base {
   font-family: var(--font-mono);
   font-size: var(--fs-body-sm);
   line-height: 16px;
   color: inherit;
 }
 
-.kb-key .k-name { font-size: 10px; line-height: 14px; color: var(--color-mute); }
+.kb-key .k-name,
+.tk-key .k-name { font-size: 10px; line-height: 14px; color: var(--color-mute); }
 .kb-key .k-finger-tag { font-size: 9px; line-height: 11px; color: var(--color-mute); }
 
 /* widths, in units of a quarter of 1u */
@@ -869,7 +878,8 @@ body {
 .kb-w625 { grid-column: span 25; }
 
 /* key index: the F/J home bumps */
-.kb-key[data-home="true"]::after {
+.kb-key[data-home="true"]::after,
+.tk-key[data-home="true"]::after {
   content: "";
   position: absolute;
   bottom: 5px;
@@ -1007,3 +1017,108 @@ kbd {
 
 /* Weak-key list: fixed-width character column for visual alignment */
 .list-row .mono[style] { flex: 0 0 auto; }
+
+/* ========================================================= keyboard tester */
+
+.tk-wrap {
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  background: var(--color-canvas);
+  padding: var(--spacing-sm);
+  overflow-x: auto;
+}
+
+.tk-board { display: inline-flex; flex-direction: column; gap: 6px; min-width: max-content; }
+
+.tk-grid-row { display: grid; gap: 4px; }
+
+/* Grid items default to min-width:auto, so an unbreakable label such as
+   "PGUP" or "ENTER" would force every 1u column wide enough to fit that text.
+   The navigation and numpad blocks then balloon far past their intended width
+   (459px instead of 132px, 728px instead of 176px) and the whole board
+   overflows. min-width:0 lets the columns stay at the track size. */
+.tk-key { min-width: 0; }
+
+/* The function row is 18u wide and the main block 15u — on a real board the
+   function row genuinely overhangs, so they are separate grids rather than one
+   wide grid pretending to be a keyboard. Every row inside the main block still
+   totals 15u, so those keys stay pixel-aligned with each other.
+
+   The block widths are FIXED rather than derived from their contents. Intrinsic
+   sizing fights back here: grid tracks take a max-content contribution from
+   their items, and .tk-board carries min-width:max-content, so an unbreakable
+   label like "PGUP" inflated the navigation block to 459px instead of 132 and
+   the whole board overflowed. Fixed widths make the track size unambiguous and
+   the layout deterministic; the wrapper scrolls when the window is narrower. */
+.tk-top { width: 792px; grid-template-columns: repeat(72, minmax(0, 1fr)); }
+.tk-bottom { display: flex; gap: 14px; align-items: flex-start; }
+.tk-bottom > * { flex: 0 0 auto; }
+.tk-main { width: 660px; grid-template-columns: repeat(60, minmax(0, 1fr)); }
+.tk-nav { width: 132px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.tk-pad { width: 176px; grid-template-columns: repeat(16, minmax(0, 1fr)); }
+
+/* ---- key states. Four states, expressed with the accent colour and the
+        semantic colours only, as the design language requires. ---- */
+
+/* Pressed at least once: covered, so a soft success tint. */
+.tk-key[data-pressed="true"] {
+  background: var(--color-success-soft);
+  border-color: var(--color-success);
+  color: var(--color-ink);
+}
+
+/* Currently held: the strongest fill, same accent the drill uses for the
+   target key. */
+.tk-key[data-active="true"] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.tk-key[data-active="true"] .k-base,
+.tk-key[data-active="true"] .k-shift,
+.tk-key[data-active="true"] .k-name { color: var(--color-on-primary); }
+
+/* A char that does not match what this physical key should produce. Declared
+   before the chatter rule so that chatter, the more serious finding, wins the
+   border colour when a key has both flags. */
+.tk-key[data-mismatch="true"] { border-color: var(--color-warning); }
+.tk-key[data-chatter="true"] {
+  border-color: var(--color-error);
+  box-shadow: inset 0 0 0 1px var(--color-error);
+}
+
+.tk-count {
+  position: absolute;
+  top: 1px; right: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 11px;
+  color: var(--color-mute);
+  pointer-events: none;
+}
+.tk-key[data-pressed="true"] .tk-count { color: var(--color-success); }
+.tk-key[data-active="true"] .tk-count { color: var(--color-on-primary); }
+
+.tk-flags { position: absolute; bottom: 2px; right: 3px; display: flex; gap: 2px; pointer-events: none; }
+.tk-flag { width: 6px; height: 6px; border-radius: var(--radius-full); }
+.tk-flag-chatter { background: var(--color-error); }
+.tk-flag-mismatch { background: var(--color-warning); }
+
+.tk-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+@media (max-width: 1100px) { .tk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.tk-detail { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+.tk-detail .card-head { margin-bottom: 0; }
+
+.tk-legend { margin-top: var(--spacing-xs); }
+.kb-swatch.tk-swatch-active { background: var(--color-primary); border-color: var(--color-primary); }
+.kb-swatch.tk-swatch-pressed { background: var(--color-success-soft); border-color: var(--color-success); }
+.kb-swatch.tk-swatch-never { background: var(--color-canvas-soft-2); }
+.kb-swatch.tk-swatch-chatter { background: var(--color-error-soft); border-color: var(--color-error); }
+.kb-swatch.tk-swatch-mismatch { background: var(--color-warning-soft); border-color: var(--color-warning); }

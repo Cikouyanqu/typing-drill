@@ -229,6 +229,27 @@ window.TD = window.TD || {};
     } catch (e) { /* audio is a nicety; a failure here must not affect typing */ }
   }
 
+  /* Short mechanical-key click for the keyboard tester. Same synthesis
+     approach as beep(): no audio files, nothing to fetch. */
+  function click(volume) {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!audioCtx) audioCtx = new Ctx();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      var t0 = audioCtx.currentTime;
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1100, t0);
+      osc.frequency.exponentialRampToValueAtTime(520, t0 + 0.018);
+      gain.gain.setValueAtTime(volume === undefined ? 0.03 : volume, t0);
+      gain.gain.exponentialRampToValueAtTime(0.0005, t0 + 0.028);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + 0.03);
+    } catch (e) { /* audio is a nicety; a failure here must not affect testing */ }
+  }
+
   TD.util = {
     mulberry32: mulberry32,
     hashString: hashString,
@@ -250,6 +271,7 @@ window.TD = window.TD || {};
     downloadText: downloadText,
     readTextFile: readTextFile,
     debounce: debounce,
-    beep: beep
+    beep: beep,
+    click: click
   };
 })(window.TD);

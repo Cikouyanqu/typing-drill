@@ -1101,7 +1101,18 @@ window.TD = window.TD || {};
       ['stats.table.', ['char', 'key', 'finger', 'attempts', 'errors', 'errorRate', 'median', 'samples']],
       ['stats.trend.', ['title', 'emptyTitle', 'emptyBody', 'cpmAxis', 'accAxis', 'total', 'aria']],
       ['practice.hud.', ['cpm', 'wpm', 'acc', 'errors', 'progress', 'time']],
-      ['settings.data.', ['stored', 'memoryOnly', 'whereTitle', 'whereBody', 'whereBodyMemory']]
+      ['settings.data.', ['stored', 'memoryOnly', 'whereTitle', 'whereBody', 'whereBodyMemory']],
+      ['keytest.layout.', ['full', 'tkl', 'compact']],
+      ['keytest.stat.', ['coverage', 'apm', 'total', 'nkro', 'locks']],
+      ['keytest.lock.', ['CapsLock', 'NumLock', 'ScrollLock']],
+      ['keytest.loc.', ['left', 'right', 'standard']],
+      ['keytest.legend.', ['active', 'pressed', 'never', 'chatter', 'mismatch']],
+      ['keytest.last.', ['title', 'none', 'repeat', 'expected', 'hint']],
+      ['keytest.chatter.', ['title', 'rule', 'none']],
+      ['keytest.mismatch.', ['title', 'baseline', 'none']],
+      ['keytest.flag.', ['chatter', 'mismatch']],
+      ['keytest.limit.', ['title', 'body']],
+      ['keytest.btn.', ['reset', 'markWin', 'markMenu']]
     ];
     var checked = 0;
     families.forEach(function (fam) {
@@ -1178,6 +1189,317 @@ window.TD = window.TD || {};
       if (host.parentNode) host.parentNode.removeChild(host);
       TD.Store._resetForTest();
     }
+  });
+
+  /* ===================================================== keyboard tester */
+
+  /* Duck-typed key events for the tester. `code` drives position, `key` is what
+     the physical key actually produced, which mismatch detection compares
+     against the US baseline. */
+  function kev(code, opts) {
+    opts = opts || {};
+    var def = TD.Keymap.keyByCode(code);
+    var shift = !!opts.shift;
+    var key = opts.key;
+    if (key === undefined) {
+      key = (def && def.base) ? (shift && def.shifted ? def.shifted : def.base) : code;
+    }
+    return {
+      code: code,
+      key: key,
+      shiftKey: shift,
+      ctrlKey: !!opts.ctrl,
+      altKey: !!opts.alt,
+      metaKey: !!opts.meta,
+      repeat: !!opts.repeat,
+      isComposing: !!opts.ime,
+      location: opts.location || 0,
+      getModifierState: function (n) { return opts.locks ? !!opts.locks[n] : false; }
+    };
+  }
+
+  /* A hand-cranked clock, injected into the tester so timing is exact. */
+  function manualClock(start) {
+    var t = start === undefined ? 1700000000000 : start;
+    return {
+      now: function () { return t; },
+      tick: function (ms) { t += ms; }
+    };
+  }
+
+  test('tester: a press is counted and held, a release clears it', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now });
+
+    var r = s.keyDown(kev('KeyA'));
+    t.eq(r.repeat, false, 'an ordinary press is not a repeat');
+    t.eq(s.count['KeyA'], 1, 'one press counted');
+    t.eq(s.heldCount(), 1, 'the key is held');
+    t.eq(s.totalDown, 1, 'one press in total');
+
+    s.keyUp(kev('KeyA'));
+    t.eq(s.heldCount(), 0, 'the release clears the held state');
+    t.eq(s.count['KeyA'], 1, 'the press count survives the release');
+    t.eq(s.last.code, 'KeyA', 'the last-key readout follows it');
+    t.eq(s.last.up, true, 'and records that the last event was a release');
+  });
+
+  test('tester: a key re-firing without releasing is chatter', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now });
+
+    s.keyDown(kev('KeyK'));
+    clk.tick(400);   /* far beyond the debounce window, so only rule 1 can match */
+    var r = s.keyDown(kev('KeyK'));
+
+    t.ok(r.chatter, 'a second press with no release must be flagged');
+    t.eq(r.chatter.rule, 'no-release', 'flagged by the no-release rule');
+    t.eq(s.chatter['KeyK'], 1, 'one chatter event recorded');
+    t.eq(s.chatterList().length, 1, 'and it appears in the chatter list');
+  });
+
+  test('tester: re-firing within the debounce window after release is chatter', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now, chatterMs: 30 });
+
+    s.keyDown(kev('KeyK'));
+    s.keyUp(kev('KeyK'));
+    clk.tick(4);     /* real chatter gaps are a few milliseconds */
+    var r = s.keyDown(kev('KeyK'));
+
+    t.ok(r.chatter, 'a re-trigger 4ms after the release must be flagged');
+    t.eq(r.chatter.rule, 'too-fast', 'flagged by the too-fast rule');
+    t.eq(r.chatter.gap, 4, 'the gap is reported so the log can show it');
+  });
+
+  test('tester: holding a key and retyping slowly are never chatter', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now, chatterMs: 30 });
+
+    /* Holding a key makes the operating system send a stream of repeated
+       keydowns. Treating those as chatter would flag every key the user holds
+       down, which is the single easiest way to get this feature wrong. */
+    s.keyDown(kev('KeyA'));
+    for (var i = 0; i < 5; i++) {
+      clk.tick(40);
+      var rep = s.keyDown(kev('KeyA', { repeat: true }));
+      t.eq(rep.repeat, true, 'the repeat is recognised as one');
+      t.ok(!rep.chatter, 'an OS key repeat must never count as chatter');
+    }
+    t.eq(s.repeats, 5, 'repeats are tallied separately');
+    t.eq(s.count['KeyA'], 1, 'and must not inflate the press count');
+    t.eq(s.chatterList().length, 0, 'nothing flagged so far');
+
+    /* Deliberately retyping a key after a normal pause is ordinary typing. */
+    s.keyUp(kev('KeyA'));
+    clk.tick(200);
+    t.ok(!s.keyDown(kev('KeyA')).chatter, 'retyping 200ms later must not be flagged');
+    t.eq(s.chatterList().length, 0, 'still nothing flagged');
+  });
+
+  test('tester: the maximum number of simultaneously held keys is tracked', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now });
+
+    ['KeyA', 'KeyS', 'KeyD', 'KeyF'].forEach(function (c) { s.keyDown(kev(c)); });
+    t.eq(s.heldCount(), 4, 'four keys held');
+    t.eq(s.maxHeld, 4, 'the maximum is recorded');
+
+    s.keyUp(kev('KeyA'));
+    s.keyUp(kev('KeyS'));
+    t.eq(s.heldCount(), 2, 'two released');
+    t.eq(s.maxHeld, 4, 'the maximum is a high-water mark and stays');
+
+    ['KeyJ', 'KeyK'].forEach(function (c) { s.keyDown(kev(c)); });
+    t.eq(s.heldCount(), 4, 'four held again');
+    t.eq(s.maxHeld, 4, 'still not exceeded');
+  });
+
+  test('tester: APM is a rolling rate over the last minute', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now });
+
+    /* Ten presses over the first ten seconds extrapolate to 60 per minute. */
+    for (var i = 0; i < 10; i++) { s.keyDown(kev('KeyA')); clk.tick(1000); }
+    t.eq(s.apm(), 60, 'ten presses in ten seconds reads as 60 APM, got ' + s.apm());
+
+    /* Presses older than a minute leave the window entirely. */
+    clk.tick(61000);
+    for (var j = 0; j < 5; j++) { s.keyDown(kev('KeyA')); clk.tick(1000); }
+    t.eq(s.apm(), 5, 'only the five recent presses remain in the window, got ' + s.apm());
+
+    /* A burst inside the opening milliseconds must not divide by an almost-zero
+       window and report hundreds of thousands. */
+    var burst = new TD.Tester.State({ now: manualClock().now });
+    for (var k = 0; k < 20; k++) burst.keyDown(kev('KeyA'));
+    t.ok(burst.apm() <= 20 * 60,
+      'the one-second floor must cap a startup burst, got ' + burst.apm());
+  });
+
+  test('tester: layout variants compose the right blocks and key counts', function (t, TD) {
+    var expect = { full: 104, tkl: 87, compact: 61 };
+    Object.keys(expect).forEach(function (id) {
+      var codes = TD.Tester.codesOf(id);
+      var seen = {};
+      var dup = [];
+      codes.forEach(function (c) { if (seen[c]) dup.push(c); seen[c] = 1; });
+      t.eq(codes.length, expect[id], id + ' should show ' + expect[id] + ' keys, got ' + codes.length);
+      t.eq(dup.length, 0, id + ' contains duplicate codes: ' + dup.join(','));
+    });
+
+    /* The block sizes are a true partition of a 104-key board. */
+    t.eq(TD.Tester.FN_KEYS.length, 16, 'function-row keys');
+    t.eq(TD.Tester.NAV_KEYS.length, 10, 'navigation cluster keys');
+    t.eq(TD.Tester.NUMPAD_KEYS.length, 17, 'numpad keys');
+    t.eq(TD.Tester.FN_KEYS.length + TD.Tester.mainCodes().length +
+         TD.Tester.NAV_KEYS.length + TD.Tester.NUMPAD_KEYS.length, 104,
+      'the four blocks must add up to a full 104-key board');
+    t.eq(TD.Tester.byVariant('tkl').blocks.indexOf('numpad'), -1, 'TKL has no numpad');
+    t.eq(TD.Tester.byVariant('compact').blocks.length, 1, 'the compact layout is the main block only');
+
+    /* Coverage has to be measured against the selected variant, or keys the
+       keyboard does not have would count as permanently untested. */
+    var s = new TD.Tester.State({ now: manualClock().now });
+    s.keyDown(kev('Numpad5', { key: '5' }));
+    t.eq(s.coverage(TD.Tester.codesOf('tkl')).pressed, 0, 'a numpad key must not count towards TKL coverage');
+    t.eq(s.coverage(TD.Tester.codesOf('full')).pressed, 1, 'but it does count on the full layout');
+  });
+
+  test('tester: character mismatch is detected against the US baseline', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now });
+
+    t.eq(s.keyDown(kev('BracketLeft')).mismatch, null, 'a correct character must not be flagged');
+    s.keyUp(kev('BracketLeft'));
+
+    /* The physical key that should produce { is producing [ — a firmware remap,
+       or a keyboard using a non-US layout. */
+    var bad = s.keyDown(kev('BracketLeft', { key: '[', shift: true }));
+    t.ok(bad.mismatch, 'a wrong character must be flagged');
+    t.eq(bad.mismatch.expected, '{', 'the expected character is reported');
+    t.eq(bad.mismatch.actual, '[', 'along with what was actually produced');
+
+    /* Shortcut combinations are not character input. */
+    t.eq(s.keyDown(kev('KeyC', { key: 'x', ctrl: true })).mismatch, null, 'Ctrl combinations are exempt');
+    /* The numpad and arrow keys are outside the key map. */
+    t.eq(s.keyDown(kev('Numpad5', { key: '5' })).mismatch, null, 'the numpad is not in the key map');
+    t.eq(s.keyDown(kev('ArrowUp')).mismatch, null, 'arrow keys are not in the key map');
+    /* Shift+A and Caps Lock both legitimately change the case of a letter. */
+    t.eq(s.keyDown(kev('KeyA', { key: 'A', shift: true })).mismatch, null, 'Shift+A is correct');
+    t.eq(s.keyDown(kev('KeyB', { key: 'B' })).mismatch, null, 'Caps Lock changing the case is not a fault');
+
+    t.eq(s.mismatchList().length, 1, 'only the one genuine mismatch is listed');
+  });
+
+  test('tester: reset clears every counter', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now });
+
+    s.keyDown(kev('KeyA'));
+    s.keyDown(kev('KeyA'));                                   /* chatter */
+    s.keyDown(kev('BracketLeft', { key: '[', shift: true }));  /* mismatch */
+    s.keyUp(kev('KeyA'));
+    t.ok(s.totalDown === 3 && s.chatterList().length === 1 && s.mismatchList().length === 1,
+      'precondition: state has accumulated');
+
+    s.reset();
+    t.eq(s.totalDown, 0, 'total presses cleared');
+    t.eq(s.heldCount(), 0, 'held set cleared');
+    t.eq(s.maxHeld, 0, 'the high-water mark cleared');
+    t.eq(s.chatterList().length, 0, 'chatter cleared');
+    t.eq(s.mismatchList().length, 0, 'mismatch cleared');
+    t.eq(s.coverage(TD.Tester.codesOf('compact')).pressed, 0, 'coverage cleared');
+    t.eq(s.locks.CapsLock, false, 'lock state cleared');
+    t.eq(s.log.length, 0, 'the event log cleared');
+  });
+
+  test('tester: losing focus releases held keys without inventing a release time', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now });
+
+    ['KeyA', 'KeyS', 'KeyD'].forEach(function (c) { s.keyDown(kev(c)); });
+    t.eq(s.heldCount(), 3, 'three keys held');
+
+    var cleared = s.clearHeld();
+    t.eq(cleared.length, 3, 'the blur releases them all');
+    t.eq(s.heldCount(), 0, 'nothing held now');
+    t.eq(s.count['KeyA'], 1, 'the presses still count as covered');
+
+    /* A key released while the page was in the background must not look like a
+       0ms release, or the next press would be judged against a timestamp that
+       was never observed. */
+    t.eq(s.lastUp['KeyA'], undefined, 'no release timestamp is invented');
+    clk.tick(1);
+    t.ok(!s.keyDown(kev('KeyA')).chatter, 'pressing again straight after the blur is not chatter');
+  });
+
+  test('tester: Win and Menu can be marked by hand since the OS eats them', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now });
+
+    var marked = s.markTested(['MetaLeft', 'MetaRight', 'ContextMenu']);
+    t.eq(marked.length, 3, 'three keys marked as tested');
+    t.eq(s.coverage(TD.Tester.codesOf('full')).pressed, 3, 'and they count towards coverage');
+    t.eq(s.markTested(['MetaLeft']).length, 0, 'marking an already-tested key is a no-op');
+    t.eq(s.totalDown, 0, 'manual marking must not inflate the press total');
+  });
+
+  test('tester: lock key state is read from the events', function (t, TD) {
+    var clk = manualClock();
+    var s = new TD.Tester.State({ now: clk.now });
+
+    s.keyDown(kev('KeyA', { locks: { CapsLock: true, NumLock: true } }));
+    t.eq(s.locks.CapsLock, true, 'Caps Lock read as on');
+    t.eq(s.locks.NumLock, true, 'Num Lock read as on');
+    t.eq(s.locks.ScrollLock, false, 'Scroll Lock read as off');
+
+    s.keyUp(kev('KeyA', { locks: {} }));
+    t.eq(s.locks.CapsLock, false, 'and it follows the next event');
+  });
+
+  test('tester: the browser defaults that must be suppressed while testing', function (t, TD) {
+    t.ok(TD.Tester.shouldPrevent({ key: 'Tab' }), 'Tab must be suppressed or focus leaves the page');
+    t.ok(TD.Tester.shouldPrevent({ key: ' ' }), 'Space must be suppressed or the page scrolls');
+    t.ok(TD.Tester.shouldPrevent({ key: 'F5' }), 'F5 must be suppressed so a stray press cannot wipe the results');
+    t.ok(!TD.Tester.shouldPrevent({ key: 'r', ctrlKey: true }), 'Ctrl+R must remain available as the refresh escape hatch');
+    t.ok(!TD.Tester.shouldPrevent({ key: 'a' }), 'ordinary characters are left alone');
+  });
+
+  test('tester view: mounting twice in a row does not double-count keypresses', function (t, TD) {
+    if (typeof document === 'undefined' || !TD.Tester || !TD.UI) {
+      t.skip('needs a DOM and the views layer; runs in the browser test page');
+      return;
+    }
+    var host1 = document.createElement('div');
+    var host2 = document.createElement('div');
+    document.body.appendChild(host1);
+    document.body.appendChild(host2);
+
+    var first = TD.Tester.mount(host1, { store: TD.Store, fresh: true });
+    /* Re-mount WITHOUT destroying the first, which is exactly what a re-render
+       that forgets its teardown does. With two live listener sets every press
+       is counted twice — and the second set sees the key as already held, so
+       ordinary typing gets reported as chatter. That regression shipped once;
+       this case exists so it cannot come back. */
+    var second = TD.Tester.mount(host2, { store: TD.Store });
+
+    function fire(type, code) {
+      var def = TD.Keymap.keyByCode(code);
+      window.dispatchEvent(new KeyboardEvent(type, {
+        code: code, key: (def && def.base) ? def.base : code, bubbles: true, cancelable: true
+      }));
+    }
+    fire('keydown', 'KeyA');
+    fire('keyup', 'KeyA');
+
+    t.eq(second.state.totalDown, 1, 'one press must be counted once, not once per live mount');
+    t.eq(second.state.count['KeyA'], 1, 'the per-key count is one');
+    t.eq(Object.keys(second.state.chatter).length, 0, 'and it must not be mistaken for chatter');
+
+    second.destroy();
+    first.destroy();
+    if (host1.parentNode) host1.parentNode.removeChild(host1);
+    if (host2.parentNode) host2.parentNode.removeChild(host2);
   });
 
   /* =============================================================== summary */

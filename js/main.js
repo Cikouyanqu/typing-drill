@@ -208,9 +208,12 @@ window.TD = window.TD || {};
   }
 
   /* A language switch re-renders everything: the views build their DOM from
-     translated strings, so nothing can stay stale — except objects that are
-     kept alive across renders and need an explicit relabel. */
+     translated strings, so nothing can stay stale. The previous view MUST be
+     torn down first — the keyboard tester attaches window-level key listeners,
+     and re-rendering without that teardown left a second set alive, so every
+     keypress was counted twice and reported as chatter. */
   function onLangChanged() {
+    TD.Views.teardown(state.view);
     buildSidebar();
     buildNotices();
     var container = document.getElementById('view');

@@ -2,6 +2,41 @@
 
 ## Changelog (completed work)
 
+### 2026-10-07 — keyboard test view
+
+A new diagnostic view, sixth in the sidebar, for checking whether a keyboard
+actually works.
+
+- **Full 104-key layout** decomposed into four blocks (fn 16 / main 61 / nav 10 /
+  numpad 17) with a layout switch for full / TKL 87 / 60%. The main block reuses
+  `Keymap.ROWS`, so the tester and the drill cannot disagree about key positions.
+  Coverage is measured against the selected variant, otherwise keys the keyboard
+  does not have would count as permanently untested.
+- **Four key states** (held / pressed / never / flagged), per-key press counts,
+  and a legend.
+- **Readouts**: coverage, APM, total presses, maximum held at once (rollover),
+  and Caps / Num / Scroll indicators.
+- **Chatter detection**, the failure a mechanical keyboard most often develops:
+  re-triggering without releasing, or within 30ms of releasing. The OS key repeat
+  is excluded, so holding a key is never flagged.
+- **Character mismatch detection** against the US layout, which catches a wrong
+  firmware remap or another layout; the caveat is stated in the interface.
+- Reset, optional synthesised key click, and an honest note about what a browser
+  cannot test (Win and Menu are intercepted by the OS and can be marked by hand).
+- `js/tester.js` holds a pure, clock-injectable state machine so all of the above
+  is covered by the Node run; 13 new cases, plus one that drives the view through
+  the DOM.
+
+**Bugs found while building it**
+
+| Problem | Symptom | Fix |
+|---|---|---|
+| A re-render without teardown left two listener sets alive | every keypress counted twice, and ordinary typing reported as chatter | tear down before re-rendering on a language switch; `mount()` also destroys any previous mount |
+| Grid intrinsic sizing inflated the blocks | the navigation block rendered 459px instead of 132px and the board overflowed to 1875px | fixed block widths, and positions in key units scaled to grid columns |
+| Multi-character legends overflowed their keys | `PGUP`, `ENTER`, `PRTSC` were clipped | long legends take the smaller named-label style |
+| APM exploded at the start of a session | a burst in the opening milliseconds divided by an almost-zero window and read 267273 | one-second floor on the divisor |
+| Test results were lost on leaving the view | checking the statistics page discarded a half-finished test | the state object outlives the view; Reset is the explicit way to clear it |
+
 ### 2026-09-30 — bilingual release, published
 
 **Internationalisation**

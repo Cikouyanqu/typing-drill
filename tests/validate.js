@@ -35,6 +35,7 @@ var APP_FILES = [
   'keyboard.js',
   'charts.js',
   'ui.js',
+  'tester.js',
   'views.js'
 ];
 

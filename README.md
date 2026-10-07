@@ -78,6 +78,33 @@ The code lines are a guarantee rather than a probability: half the slots in a we
 - **Idle handling** — gaps over 2 seconds are excluded from response-time samples, and gaps over 5 seconds are excluded from the clock. Both thresholds are at the top of `js/engine.js`.
 - **Weakness score** — 70% error rate + 30% slowness, scaled by sample confidence. A key you have never got wrong and that is not slow is *not* a weakness: practised is not the same as weak.
 
+## Keyboard test
+
+A separate diagnostic view, for checking whether a keyboard actually works: press
+anything and the board lights up.
+
+![Keyboard test](docs/screenshot-keytest.png)
+
+- **Full 104-key layout**, with a layout switch for full / TKL 87 / 60%, so keys
+  your keyboard does not have are not counted as permanently untested.
+- **Four states per key**: held, pressed (covered), never, and flagged — and each
+  key shows how many times it was pressed.
+- **Coverage**, **APM** (real-time triggers per minute), **total presses**, the
+  **maximum held at once** (rollover), and **Caps / Num / Scroll indicators**.
+- **Chatter detection** — the failure a mechanical keyboard most often develops:
+  a key re-firing without releasing, or re-triggering within 30ms of releasing.
+  The operating system's own key repeat is excluded, so holding a key down is
+  never mistaken for a fault.
+- **Character mismatch** — compares what each physical key produces against the
+  US layout, which catches a wrong firmware remap or a keyboard set to another
+  layout. On a non-US layout entries here are expected rather than a fault.
+- Reset, an optional key click, and a plain statement of what a browser cannot
+  test: the Win and Menu keys are intercepted by the operating system, so those
+  two can be marked by hand.
+
+Results survive leaving the view and coming back; *Reset* is the way to clear
+them.
+
 ## Data and privacy
 
 - Practice records live only in **this computer's browser local storage**, under the key `typing-drill/v1`.
@@ -104,9 +131,10 @@ typing-drill/
 ├── js/store.js             persistence: probe and degrade, import/export
 ├── js/adaptive.js          weakness ranking and drill generation
 ├── js/keyboard.js          on-screen keyboard: finger guidance and heatmap
+├── js/tester.js            keyboard test: state machine, 104-key layout, view
 ├── js/charts.js            hand-written SVG trend chart
 ├── js/ui.js                theme, icons, toasts, modal
-├── js/views.js             the five views
+├── js/views.js             the six views
 ├── js/main.js              boot and shell
 ├── docs/I18N.md            how the bilingual setup works, reusable elsewhere
 └── tests/                  cases.js, validate.js (Node), test.html (browser)
@@ -118,7 +146,7 @@ typing-drill/
 node tests/validate.js
 ```
 
-Covers key-map completeness, the typeability of every character in the content library, engine mistake classification, statistics definitions (with hand-computed fixtures), storage degradation and import de-duplication, adaptive scoring monotonicity, and the translation layer. Currently **66 cases / 593 assertions, all passing** (one DOM-only case is skipped under Node).
+Covers key-map completeness, the typeability of every character in the content library, engine mistake classification, statistics definitions (with hand-computed fixtures), storage degradation and import de-duplication, adaptive scoring monotonicity, keyboard-test state handling (chatter rules, key repeat, rollover, layout composition), and the translation layer. Currently **82 cases / 760 assertions, all passing** (three DOM-only cases are skipped under Node).
 
 Open `tests/test.html` in a browser to run the same cases; anything the browser cannot support is reported as *skipped* rather than as a failure.
 
