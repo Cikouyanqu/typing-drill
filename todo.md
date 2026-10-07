@@ -76,7 +76,8 @@ actually works.
 
 **Repository**
 
-- English `README.md` plus `README.zh-CN.md`, cross-linked, with a screenshot.
+- `README.md` (Chinese, the default the repository shows) plus `README.en.md`,
+  cross-linked, each with a screenshot in its own language.
 - `AGENTS.md` (public) and `.local/AGENTS.local.md` (gitignored private notes).
 - MIT `LICENSE`, `.gitignore`, `start.sh` for macOS/Linux alongside `start.cmd`.
 - `docs/I18N.md` documenting the bilingual approach for reuse in future projects.

@@ -76,6 +76,12 @@ every key referenced from source exists, and fails if any CJK character appears
 outside `js/locales/`. A single line may opt out with an `i18n-check-allow`
 marker — used where a test legitimately asserts on a Chinese dictionary value.
 
+**One deliberate exception: `README.md` is Chinese.** GitHub renders only
+`README.md` on the repository landing page, so that filename carries whichever
+language should be the default — Chinese here. It is therefore excluded from the
+CJK check, and the English document is `README.en.md`, which *is* checked. Swapping
+the default means swapping the two filenames and moving the exclusion with it.
+
 Adding a string: add the key to `js/locales/en.js` **and** `js/locales/zh-CN.js`,
 then reference it with `tr('key.path')` in the view. Keys are flat dot-notation
 namespaces whose prefix identifies the owning area.

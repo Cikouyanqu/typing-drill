@@ -112,11 +112,12 @@ var fs = require('fs');
 /* tests/ is included on purpose: the bilingual convention covers the test
    suite too, not just the shipping source.
    Documentation is listed file by file rather than by directory, because
-   README.zh-CN.md is the one document that is supposed to be Chinese and must
-   stay out of this check. */
+   README.md is the Chinese document — it is the default the repository shows,
+   so it is the one file that must stay out of this check. The English README
+   is README.en.md and IS checked. */
 var SOURCE_DIRS = ['js', 'css', 'tests'];
 var SOURCE_FILES = ['index.html', 'start.cmd', 'start.sh',
-  'README.md', 'AGENTS.md', 'todo.md', path.join('docs', 'I18N.md')];
+  'README.en.md', 'AGENTS.md', 'todo.md', path.join('docs', 'I18N.md')];
 var LOCALE_DIR = path.join('js', 'locales');
 
 function walk(dir, out) {

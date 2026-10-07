@@ -1,179 +1,167 @@
 # typing-drill
 
-A typing trainer for **programming symbols**. Zero-dependency static pages: plain HTML/CSS/JS, no build step, no package manager, works offline. Language: **English · [中文](README.zh-CN.md)** <!-- i18n-check-allow: language names are written in their own script -->
+一个**专练编程符号**的打字训练器。零依赖静态页：原生 HTML/CSS/JS，无构建步骤、无包管理器、可离线使用。语言：**中文 · [English](README.en.md)**
 
-![The practice view](docs/screenshot-practice-en.png)
-
----
-
-## Why this exists
-
-Because I could not be bothered hunting for a site that drills symbols on their own.
-
-### 1. Symbols grouped by which finger has to move
-
-`{ } | \ ; : ' " / ?` all live under the right pinky; `! @ # ` ~` under the left — though feel free to use other fingers, toes included. The 13 practice groups are organised by finger and key layer, and the on-screen keyboard highlights not just the target key but **the whole region that finger owns**.
-
-### 2. Shift mistakes classified separately
-
-The engine reads both `event.key` (the character produced) and `event.code` (the physical key), so it can tell these apart:
-
-| Mistake          | Example                    | Meaning                                                      |
-| ---------------- | -------------------------- | ------------------------------------------------------------ |
-| Wrong key        | want `{`, typed `]`        | hand position was off                                        |
-| Missing Shift    | want `{`, typed `[`        | right key, Shift not held                                    |
-| Extra Shift      | want `[`, typed `{`        | right key, Shift held by mistake                             |
-| Wrong Shift side | typed `{` with right Shift | correct character, wrong technique — reported, not penalised |
-| Caps Lock on     | want `a`, typed `A`        | named explicitly so you do not blame your fingers            |
-
-It also tells you which hand should hold Shift: **always the opposite pinky** (left-hand keys take right Shift and vice versa), and lights that Shift key up on the on-screen keyboard.
-
-### 3. A symbols-only mode
-
-Letters and digits dim out and are skipped automatically, so you only press symbol keys. CPM is then computed over symbols only. Maximum symbol density, no interruption from words.
-
-### 4. Weak-key drills driven by your own mistakes
-
-Per-key error rates and response times are recorded, ranked, and turned into practice:
-
-- **back-and-forth rows** built from your weakest symbols — including the *other layer of the same physical key*, because missing-Shift mistakes can only be trained by contrasting the two layers;
-- **real code lines** from the snippet library that actually contain those characters.
-
-The code lines are a guarantee rather than a probability: half the slots in a weak-key drill are reserved for lines containing a weak character, because a purely weighted draw can miss them for a whole round and leave the drill as filler.
+![练习界面](docs/screenshot-practice-zh.png)
 
 ---
 
-## Quick start
+## 为什么做这个
 
-**Option 1 — open `index.html` directly.** No installation. If your browser blocks local storage on `file://` URLs, a notice appears at the top of the page and practice records last only for that page view; you can export a JSON backup at any time from *Settings → Data*.
+因为我懒得找能单独联符号的网站。
 
-**Option 2 — run the local server.** `start.cmd` on Windows, `./start.sh` on macOS/Linux. This serves the page from `http://127.0.0.1:8777/` so it has a normal origin and practice records persist. Close the window (or press Ctrl+C) to stop.
+### 一、符号按「哪根手指要动」分组
 
-> Both work; the difference is just **whether records are saved**. Use option 2 if you want to keep your data.
+`{ } | \ ; : ' " / ?` 全在右手小指，`! @ # ` ~` 全在左手小指，当然你也可以用别的手指，脚趾也行。13 个练习分组按手指与键位层次组织，屏上键盘不只高亮目标键，还会把**同一根手指负责的整片键区**一起标出来。
 
-## How to practise
+### 二、把 Shift 错误单独归类
 
-1. Open the **Practice** view and leave the mode on *Symbol drills*. All 13 groups are selected by default; use *Filters…* to narrow it down (starting with **Right pinky region** is a good idea).
-2. Click the practice area and start typing. The target key is highlighted in the accent colour; the rest of its finger region is light blue.
-3. When you press the wrong key, the status row explains what went wrong and which finger should have been used. The cursor does not advance; just type the character correctly.
-4. Finishing a set shows a result card: CPM, accuracy, an error breakdown, and the characters you confuse most.
-5. After a few rounds, open **Weak keys** — it names your weakest keys and builds drills around them.
-6. **Stats** has the per-key table, per-finger error rates, a per-key heatmap, and a speed/accuracy trend.
+引擎同时读 `event.key`（打出的字符）和 `event.code`（物理键位），因此能区分：
 
-## Modes
+| 错法          | 例子                | 含义                                 |
+| ------------- | ------------------- | ------------------------------------ |
+| 键位打错      | 期望 `{`，打出 `]`  | 手位错了                             |
+| 漏按 Shift    | 期望 `{`，打出 `[`  | 键位对，Shift 没按住                 |
+| 多按 Shift    | 期望 `[`，打出 `{`  | 键位对，Shift 多按了                 |
+| 用错 Shift 侧 | 用右 Shift 打出 `{` | 字符对但指法不对——只提示，不罚正确率 |
+| 大写锁定开着  | 期望 `a`，打出 `A`  | 直接点名，免得你以为是自己的手笨     |
 
-| Mode              | Content                                                                                                               | Use it for                                              |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| **Symbol drills** | 13 groups, multi-select, adjustable symbols per line                                                                  | Everyday practice; also for attacking one finger region |
-| **Code lines**    | 214 hand-written real statements across five language families (JS/TS including JSON and JSX, Python, Shell, Go, SQL) | Practising symbols in meaningful context                |
-| **Weak keys**     | Generated from your own per-key data                                                                                  | Most valuable after a few rounds                        |
-| **Custom**        | Paste code you have at hand, or import a `.txt`/`.js`/`.py`/`.sql` file                                               | Practising your own codebase's style                    |
+它还会告诉你该用哪只手按 Shift：**永远用对侧小指**（左手键配右 Shift，反之亦然），并在屏上键盘点亮对应的那一侧。
 
-## Stats
+### 三、「只打符号」模式
 
-- **CPM** — characters per minute. Symbols favour character counts over word counts, so CPM is the primary figure; WPM is derived as CPM ÷ 5.
-- **First-try accuracy** — the share of characters you got right on the first press. More telling than overall accuracy.
-- **Raw accuracy** — correct presses ÷ all presses. Retyping after Backspace counts in both, so it can never exceed 100%.
-- **Median response time** — the median rather than the mean, because one distraction is enough to drag an average far off.
-- **Idle handling** — gaps over 2 seconds are excluded from response-time samples, and gaps over 5 seconds are excluded from the clock. Both thresholds are at the top of `js/engine.js`.
-- **Weakness score** — 70% error rate + 30% slowness, scaled by sample confidence. A key you have never got wrong and that is not slow is *not* a weakness: practised is not the same as weak.
+字母和数字变暗并自动跳过，你只按符号键，CPM 也只按符号数计算。符号密度拉满，不被单词打断节奏。
 
-## Keyboard test
+### 四、弱项强化用你自己的错误数据出题
 
-A separate diagnostic view, for checking whether a keyboard actually works: press
-anything and the board lights up.
+逐键记录错误率与反应时，排出最弱的键，然后：
 
-![Keyboard test](docs/screenshot-keytest.png)
+- 用这些弱符号凑**往返练习行**——**并带上同一物理键的另一层**，因为漏按 Shift 这类错误只有在上下层对照时才能练出来；
+- 从题库里挑**真的含有这些字符**的真实代码行，在真实上下文里再打一遍。
 
-- **Full 104-key layout**, with a layout switch for full / TKL 87 / 60%, so keys
-  your keyboard does not have are not counted as permanently untested.
-- **Four states per key**: held, pressed (covered), never, and flagged — and each
-  key shows how many times it was pressed.
-- **Coverage**, **APM** (real-time triggers per minute), **total presses**, the
-  **maximum held at once** (rollover), and **Caps / Num / Scroll indicators**.
-- **Chatter detection** — the failure a mechanical keyboard most often develops:
-  a key re-firing without releasing, or re-triggering within 30ms of releasing.
-  The operating system's own key repeat is excluded, so holding a key down is
-  never mistaken for a fault.
-- **Character mismatch** — compares what each physical key produces against the
-  US layout, which catches a wrong firmware remap or a keyboard set to another
-  layout. On a non-US layout entries here are expected rather than a fault.
-- Reset, an optional key click, and a plain statement of what a browser cannot
-  test: the Win and Menu keys are intercepted by the operating system, so those
-  two can be marked by hand.
+代码行是**硬保证而非概率**：弱项练习里一半的名额预留给含弱字符的行。只靠加权抽样是不够的——含弱字符的行可能因为整体密度略低而整轮落选，那样代码部分就沦为填充物。
 
-Results survive leaving the view and coming back; *Reset* is the way to clear
-them.
+---
 
-## Data and privacy
+## 快速开始
 
-- Practice records live only in **this computer's browser local storage**, under the key `typing-drill/v1`.
-- The tool **makes no network requests at all**: fonts come from the system font stack, there is no CDN, no analytics, no telemetry. It works fully offline.
-- A corrupt save is copied to `typing-drill/v1.corrupt` before a fresh state starts; user data is never silently destroyed.
-- Export and import are plain JSON. Merging is supported, and importing the same file twice is detected and skipped.
+**方式一：直接打开 `index.html`。** 零安装。若浏览器在 `file://` 下禁用了本地存储，页面顶部会出现说明横幅，练习记录仅在本次打开的页面内有效，可随时从「设置 → 数据」导出 JSON 备份。
 
-## Project layout
+**方式二：跑本地服务。** Windows 双击 `start.cmd`，macOS/Linux 执行 `./start.sh`。页面的 origin 变成 `http://127.0.0.1:8777/`，练习记录正常保存。关闭窗口（或按 Ctrl+C）即停止。
+
+> 两种方式都能用，区别只在**记录保存**。想保存数据用方式二。
+
+## 怎么练
+
+1. 进**练习**页，模式保持「符号专项」。默认全选 13 个分组，点「筛选…」可以收窄（建议先试**右手小指区**）。
+2. 点击练习区开始打字。目标键用主色高亮，同一根手指的键区是浅蓝。
+3. 打错时状态行会说明错在哪、该用哪根手指。当前字符不前进，改对即可。
+4. 一套打完出结果卡：CPM、正确率、错法拆解，以及你最常混淆的字符对。
+5. 练几轮后进**弱项强化**——它会指出你最弱的键并针对它们出题。
+6. **统计**页有逐键明细表、分指错误率、逐键热力图和速度/正确率趋势。
+
+## 模式
+
+| 模式         | 内容                                                                            | 适合                           |
+| ------------ | ------------------------------------------------------------------------------- | ------------------------------ |
+| **符号专项** | 13 个分组，可多选，每行符号数可调                                               | 日常主练，也用来专攻某个手指区 |
+| **代码行**   | 五个语言族共 214 行手写真实语句（JS/TS 含 JSON 与 JSX、Python、Shell、Go、SQL） | 在有意义的上下文里练符号       |
+| **弱项强化** | 按你的逐键数据自动出题                                                          | 练够几轮后最有价值             |
+| **自定义**   | 粘贴你手头的代码，或导入 `.txt`/`.js`/`.py`/`.sql` 文件                         | 练自己项目的代码风格           |
+
+## 统计
+
+- **CPM**：字符/分钟。符号练习比单词练习更适合看字符数，所以 CPM 是主指标；WPM 按 CPM ÷ 5 换算。
+- **首打正确率**：首次按键就打对的字符比例。比总体正确率更能反映真实水平。
+- **原始正确率**：正确击键 ÷ 总击键。退格后重打会同时计入两者，所以不会超过 100%。
+- **中位反应时**：用中位数而不是平均值——一次走神就能把平均值拉歪。
+- **走神处理**：间隔超过 2 秒不计入反应时样本；超过 5 秒的部分从计时里剔除。两个阈值都在 `js/engine.js` 顶部。
+- **弱项得分**：错误率 70% + 反应时偏慢 30%，再乘样本置信度。「没错过也不慢」的键不算弱项——练过不等于弱。
+
+## 键盘检测
+
+一个独立的诊断视图，用来确认键盘本身是不是好的：按下任意键，键盘图上就会亮起来。
+
+![键盘检测](docs/screenshot-keytest.png)
+
+- **完整 104 键布局**，并提供配列切换：全尺寸 / TKL 87 / 60%——这样你键盘上根本没有的键不会被永远算作「未测过」。
+- **每个键四种状态**：按住中、按过（已覆盖）、没按过、有告警；键上还会显示按下的次数。
+- **覆盖率**、**APM**（实时每分钟触发次数）、**触发总数**、**同时按住上限**（验证全键无冲）、以及 **Caps / Num / Scroll 锁定键指示灯**。
+- **连击 / 抖动检测**——机械键盘最典型的失效：没松开就重复触发，或松开后 30ms 内又触发。**系统自身的按键重复会被排除**，所以按住一个键不会被误判。
+- **键位不符检测**——拿 US 布局当基准，比对每个物理键实际发出的字符，能抓出固件重映射错误、或键盘被设成了别的布局。非 US 布局下出现条目是正常的，不是故障。
+- 重置、可选的按键声，以及一条如实说明：Win 与 Menu 键会被系统截获，浏览器测不到，所以那两个键可以用按钮手动标记为已测。
+
+测试结果在你离开视图再回来时会保留；要清空点「重置」。
+
+## 数据与隐私
+
+- 练习记录只保存在**这台电脑的浏览器本地存储**里，键名 `typing-drill/v1`。
+- 工具**不发起任何网络请求**：字体走系统字体栈，没有 CDN、没有埋点、没有统计上报。可完全离线使用。
+- 存档损坏时会先复制到 `typing-drill/v1.corrupt` 再以全新状态启动，不静默销毁数据。
+- 导出导入为纯 JSON，支持合并；同一份文件重复导入会被识别并跳过。
+
+## 目录结构
 
 ```
 typing-drill/
-├── index.html              entry point; script order IS the dependency order
-├── start.cmd / start.sh    optional local static server launchers
-├── css/tokens.css          design tokens — the single source of values
-├── css/app.css             layout and components, tokens only
-├── js/i18n.js              translation runtime
-├── js/locales/             zh-CN.js and en.js dictionaries
-├── js/util.js              helpers + seedable RNG
-├── js/keymap.js            US QWERTY key map, finger mapping, mistake classification
-├── js/content.symbols.js   13 symbol groups and drill generation
-├── js/content.snippets.js  the code-line library
-├── js/engine.js            typing engine: verdicts, mistake kinds, timing
-├── js/stats.js             aggregation: per-key, per-finger, heat buckets, trend
-├── js/store.js             persistence: probe and degrade, import/export
-├── js/adaptive.js          weakness ranking and drill generation
-├── js/keyboard.js          on-screen keyboard: finger guidance and heatmap
-├── js/tester.js            keyboard test: state machine, 104-key layout, view
-├── js/charts.js            hand-written SVG trend chart
-├── js/ui.js                theme, icons, toasts, modal
-├── js/views.js             the six views
-├── js/main.js              boot and shell
-├── docs/I18N.md            how the bilingual setup works, reusable elsewhere
-└── tests/                  cases.js, validate.js (Node), test.html (browser)
+├── index.html              入口；脚本顺序即依赖顺序
+├── start.cmd / start.sh    可选的本地静态服务启动器
+├── css/tokens.css          设计 token —— 唯一取值来源
+├── css/app.css             布局与组件，只消费 token
+├── js/i18n.js              翻译运行时
+├── js/locales/             zh-CN.js 与 en.js 两本词典
+├── js/util.js              工具函数 + 可播种随机数
+├── js/keymap.js            US QWERTY 键位表、手指归属、错误分类
+├── js/content.symbols.js   13 个符号分组与出题
+├── js/content.snippets.js  代码题库
+├── js/engine.js            打字引擎：判定、错法、计时
+├── js/stats.js             统计聚合：逐键、分指、热力分档、趋势
+├── js/store.js             持久化：探针降级、导入导出
+├── js/adaptive.js          弱项排行与强化出题
+├── js/keyboard.js          屏上键盘：指法提示与热力图
+├── js/tester.js            键盘检测：状态机、104 键布局、视图
+├── js/charts.js            手写 SVG 趋势图
+├── js/ui.js                主题、图标、轻提示、模态框
+├── js/views.js             六个视图
+├── js/main.js              引导与外壳
+├── docs/I18N.md            双语方案怎么做、怎么复用
+└── tests/                  cases.js、validate.js（Node）、test.html（浏览器）
 ```
 
-## Tests
+## 自检
 
 ```bash
 node tests/validate.js
 ```
 
-Covers key-map completeness, the typeability of every character in the content library, engine mistake classification, statistics definitions (with hand-computed fixtures), storage degradation and import de-duplication, adaptive scoring monotonicity, keyboard-test state handling (chatter rules, key repeat, rollover, layout composition), and the translation layer. Currently **82 cases / 760 assertions, all passing** (three DOM-only cases are skipped under Node).
+覆盖键位表完整性、题库每个字符的可打性、引擎错误分类、统计口径（含手算样例）、存储降级与导入去重、自适应得分单调性、键盘检测的状态处理（连击规则、按键重复、全键无冲、配列组成），以及翻译层。当前 **82 个用例 / 760 项检查全部通过**（Node 下跳过 3 条仅需 DOM 的用例）。
 
-Open `tests/test.html` in a browser to run the same cases; anything the browser cannot support is reported as *skipped* rather than as a failure.
+浏览器里打开 `tests/test.html` 跑同一份用例；环境不支持的项会如实标注「跳过」而不是失败。
 
-The Node runner also performs static checks:
+Node 运行器还做三条静态检查：
 
-- both dictionaries carry exactly the same keys, so a half-translated release fails the suite;
-- every dictionary key referenced from source exists;
-- **no CJK character appears anywhere outside `js/locales/`**. A line can opt out with an explicit `i18n-check-allow` marker.
+- 两本词典键集合必须完全一致，半翻译的版本会让套件失败；
+- 源码里引用到的词典键必须都存在；
+- **`js/locales/` 之外不得出现任何中文字符**。允许单行用 `i18n-check-allow` 标记显式放行。
 
-## Extending it
+## 如何扩展
 
-**Add code lines** — edit the `lines` array of a pack in `js/content.snippets.js`. Re-run the suite afterwards: an assertion requires every character in the library to be typeable on a US keyboard, so CJK comments, full-width punctuation and tabs are all rejected.
+**加代码题行** —— 编辑 `js/content.snippets.js` 里对应包的 `lines` 数组。改完必须重跑自检：有条断言要求题库里每个字符都能用 US 键盘打出，中文注释、全角标点、制表符都会被拦下。
 
-**Add a symbol group** — edit `GROUPS` in `js/content.symbols.js`. The character set, the fingers involved and the Shift ratio are derived automatically. Tokens may be multi-character (`->`, `===`).
+**加符号分组** —— 编辑 `js/content.symbols.js` 的 `GROUPS`，字符集、涉及的手指、Shift 占比都会自动派生。token 可以是多字符组合（`->`、`===`）。
 
-**Use a different keyboard layout** — replace `ROWS` and the finger assignments in `js/keymap.js`. Everything else (mistake classification, finger guidance, heatmap, statistics) reads from that one table.
+**换键盘布局** —— 只需替换 `js/keymap.js` 里的 `ROWS` 与手指归属。其余全部逻辑（错误分类、指法提示、热力图、统计）都读这一张表。
 
-**Tune the pacing** — theme, text size, line count, symbols-only and strict mode are in *Settings*. The remaining defaults are in `DEFAULT_SETTINGS` in `js/store.js`.
+**调练习节奏** —— 主题、字号、行数、只打符号、严格模式都在**设置**页。其余默认值在 `js/store.js` 的 `DEFAULT_SETTINGS`。
 
-## Known limitations
+## 已知限制
 
-- **US QWERTY only.** Other layouts place symbols differently, so the finger guidance would be wrong (`ROWS` is replaceable).
-- **Only printable ASCII typeable on a US keyboard.** CJK, full-width punctuation and tabs cannot be drilled — they need an input method editor or special keys and would stall the drill. The library view checks pasted content and the test suite enforces it.
-- **Shift-side detection requires you to actually press Shift.** When Caps Lock is used for uppercase, which side was pressed cannot be determined.
-- **The on-screen keyboard needs about 660px**; narrower windows scroll horizontally.
-- **Whether `file://` allows local storage depends on the browser.** Only the served path has been verified in this repository's development; when opened directly, the page detects a blocked local store, says so, and offers an export.
+- **只支持 US QWERTY 布局。** 其他布局的符号位置不同，指法提示会不对（`ROWS` 可替换）。
+- **只能练 US 键盘可直接打出的可打印 ASCII。** 中文、全角符号、制表符无法练习——它们需要输入法或特殊键，会让练习卡住。内容库保存时会检查，测试套件也会强制。
+- **Shift 侧识别需要你真的按 Shift。** 用 CapsLock 打大写时无法判断用了哪一侧。
+- **屏上键盘最小宽度约 660px**，更窄的窗口需要横向滚动。
+- **`file://` 下本地存储是否可用取决于浏览器。** 本仓库开发期间只实测过本地服务方式；直接打开时若本地存储被禁，页面会自行检测、说明并提供导出。
 
-## License
+## 许可证
 
 [MIT](LICENSE)
