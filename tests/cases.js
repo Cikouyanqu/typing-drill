@@ -1502,6 +1502,42 @@ window.TD = window.TD || {};
     if (host2.parentNode) host2.parentNode.removeChild(host2);
   });
 
+  test('tester view: switching layout moves the selected state on the control', function (t, TD) {
+    if (typeof document === 'undefined' || !TD.Tester || !TD.UI) {
+      t.skip('needs a DOM and the views layer; runs in the browser test page');
+      return;
+    }
+    var host = document.createElement('div');
+    document.body.appendChild(host);
+    var handle = TD.Tester.mount(host, { store: TD.Store, fresh: true });
+
+    try {
+      var btns = host.querySelectorAll('.seg-btn');
+      t.ok(btns.length >= 3, 'the layout control should offer its options');
+
+      var byValue = function (v) {
+        return Array.prototype.filter.call(btns, function (b) {
+          return b.getAttribute('data-value') === v;
+        })[0];
+      };
+      t.eq(byValue('full').getAttribute('aria-pressed'), 'true', 'the default layout starts selected');
+      t.eq(byValue('tkl').getAttribute('aria-pressed'), 'false', 'the others start unselected');
+
+      /* The tester updates in place instead of re-rendering, so the control has
+         to be told explicitly. Without that the board switched but the highlight
+         stayed on the original option, which reads as the switch doing nothing. */
+      byValue('tkl').click();
+      t.eq(byValue('tkl').getAttribute('aria-pressed'), 'true', 'the clicked option becomes selected');
+      t.eq(byValue('full').getAttribute('aria-pressed'), 'false', 'and the previous one clears');
+      t.eq(host.querySelectorAll('.tk-key').length, 87, 'the board switches to 87 keys');
+      t.eq(TD.Store.settings.testerLayout, 'tkl', 'and the choice is stored');
+    } finally {
+      handle.destroy();
+      if (host.parentNode) host.parentNode.removeChild(host);
+      TD.Store._resetForTest();
+    }
+  });
+
   /* =============================================================== summary */
 
   TD.TEST_CASES = CASES;

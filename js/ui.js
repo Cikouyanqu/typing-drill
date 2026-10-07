@@ -247,11 +247,28 @@ window.TD = window.TD || {};
         class: 'seg-btn',
         type: 'button',
         text: it.label,
+        'data-value': it.value,
         'aria-pressed': String(it.value === active),
         onclick: function () { onPick(it.value); }
       }));
     });
     return node;
+  }
+
+  /* Move the selected state without rebuilding the control.
+
+     A seg writes aria-pressed once, at creation. A view whose callback refreshes
+     only its own content — the keyboard tester switching layout, for instance —
+     therefore leaves the highlight stuck on the original option while everything
+     else changes, which reads as the switch not working. Views that re-render
+     themselves (the practice mode switch, the settings rows) get this for free
+     because the control is rebuilt. */
+  function segSetActive(node, value) {
+    if (!node) return;
+    var btns = node.querySelectorAll('.seg-btn');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].setAttribute('aria-pressed', String(btns[i].getAttribute('data-value') === String(value)));
+    }
   }
 
   function chips(items, isActive, onToggle) {
@@ -293,6 +310,7 @@ window.TD = window.TD || {};
     select: select,
     switchRow: switchRow,
     seg: seg,
+    segSetActive: segSetActive,
     chips: chips,
     settingRow: settingRow
   };

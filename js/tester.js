@@ -533,6 +533,9 @@ window.TD = window.TD || {};
         function (v) {
           variantId = v;
           if (store) store.setSetting('testerLayout', v);
+          /* This view updates in place rather than re-rendering, so the control's
+             own selected state has to be moved explicitly. */
+          TD.UI.segSetActive(layoutSeg, v);
           buildBoard();
           paintAll();
           paintReadouts();

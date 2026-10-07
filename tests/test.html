@@ -224,8 +224,11 @@
   }
 
   /* Let the browser paint the skeleton first, then run the suite, so a long
-     synchronous task cannot make the page look frozen. */
-  requestAnimationFrame(function () { setTimeout(run, 0); });
+     synchronous task cannot make the page look frozen.
+     Deliberately setTimeout rather than requestAnimationFrame: Chromium does
+     not fire animation frames for a background tab, so an rAF gate leaves the
+     page stuck on "running…" forever whenever the tab is not in front. */
+  setTimeout(run, 30);
 })();
 </script>
 
